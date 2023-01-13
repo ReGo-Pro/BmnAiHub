@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  database:
+    image: postgres
+    ports:
+    - 5432:5432
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=UrZB_e2kMTP2@nB
+      - POSTGRES_DB=AiHubMaster
+    volumes:
+      - app_data:/var/lib/postgresql/data
+
+  migrator:
+    image: ${DOCKER_REGISTRY-}dbmigrator
+    build:
+      context: .
+      dockerfile: DbMigrator/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - database
+    command: ["DbMigrator/wait-for-postgres.sh", "database", "dotnet", "WebApp.dll"]
+
+  backend:
+    image: ${DOCKER_REGISTRY-}webapi
+    build:
+      context: .
+      dockerfile: WebApi/Dockerfile
+    ports:
+      - 8000:80
+      - 9000:443
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - static_files:/wwwroot
+    depends_on:
+      - migrator
+    
+volumes:
+  app_data:
+  static_files:
